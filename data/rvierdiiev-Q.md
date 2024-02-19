@@ -8,3 +8,12 @@ Similarly for all pools factory `yieldToSetter` [is set as gas and yield manager
 
 ### Recommendation
 Change gas manager for factory.
+
+## QA-02. DOMAIN_SEPARATOR is cached for the pools
+### Description
+When pool is constructed, then [DOMAIN_SEPARATOR is calculated](https://github.com/code-423n4/2024-02-thruster/blob/main/thruster-protocol/thruster-cfmm/contracts/ThrusterPair.sol#L85-L92). It uses chainid at the moment of deploy. DOMAIN_SEPARATOR is used for permit functionality.
+
+In case if hardfork will happen that will change chain id, then this functionality will not work as expected anymore.
+
+### Recommendation
+In case if chain is not what was cached on deploy, then recalculate DOMAIN_SEPARATOR.
