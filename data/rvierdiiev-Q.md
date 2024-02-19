@@ -24,3 +24,15 @@ In case if chain is not what was cached on deploy, then recalculate DOMAIN_SEPAR
 
 ### Recommendation
 Add ability to claim gas.
+
+## QA-04. ThrusterTreasure.setPrize allows to change prize after winners selected
+### Description
+ThrusterTreasure.setPrize function allows to [set prize for current round](https://github.com/code-423n4/2024-02-thruster/blob/main/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L167) and for any index in it. It's possible that winner were already selected, but `setRoot` was not called yet, so [round has not increased](https://github.com/code-423n4/2024-02-thruster/blob/main/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L255), then owner has ability to decrease prize.
+### Recommendation
+In case if prize was set, then don't allow to change it.
+
+## QA-05. Admin has ability to withdraw funds
+### Description
+Using `ThrusterTreasure.retrieveTokens` function admin can withdraw funds that were provided as prizes and create insolvency of contract.
+### Recommendation
+Once prize is set, then don't allow to change it and withdraw funds.
