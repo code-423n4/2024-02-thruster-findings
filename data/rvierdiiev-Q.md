@@ -17,3 +17,10 @@ In case if hardfork will happen that will change chain id, then this functionali
 
 ### Recommendation
 In case if chain is not what was cached on deploy, then recalculate DOMAIN_SEPARATOR.
+
+## QA-03. NonfungibleTokenPositionDescriptor doesn't have ability to claim gas
+### Description
+`NonfungibleTokenPositionDescriptor` contract have only view functions, but it is still possible that it will be used on chain, which means that gas can be claimed for such usage. But it [is not configured](https://github.com/code-423n4/2024-02-thruster/blob/main/thruster-protocol/thruster-clmm/contracts/NonfungibleTokenPositionDescriptor.sol#L26-L29).
+
+### Recommendation
+Add ability to claim gas.
