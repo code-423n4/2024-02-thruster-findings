@@ -36,3 +36,9 @@ In case if prize was set, then don't allow to change it.
 Using `ThrusterTreasure.retrieveTokens` function admin can withdraw funds that were provided as prizes and create insolvency of contract.
 ### Recommendation
 Once prize is set, then don't allow to change it and withdraw funds.
+
+## QA-06. ThrusterTreasure.requestRandomNumber will revert if contract has exact amount as fee
+### Description
+ThrusterTreasure.requestRandomNumber function request random from pyth entropy. It should pay fee along with a call. [The check in the function](https://github.com/code-423n4/2024-02-thruster/blob/main/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L240) is not good enough and it will not allow to execute call if contract has enough funds.
+### Recommendation
+`require(address(this).balance >= fee, "IF");`
