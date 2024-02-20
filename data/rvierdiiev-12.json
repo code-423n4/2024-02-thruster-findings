@@ -1,0 +1,8 @@
+{
+  "contest": 334,
+  "handle": "rvierdiiev",
+  "risk": "2",
+  "title": "ThrusterFactory.setYieldCut should claim fees for all pools before",
+  "issueId": 12,
+  "issueUrl": "https://github.com/code-423n4/2024-02-thruster-findings/issues/12"
+}
