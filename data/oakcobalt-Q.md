@@ -51,4 +51,26 @@ interface IThrusterPair {
 Recommendations:
 Remove IThrusterERC20 inheritance.
 
+### Low-03 ThrusterPair may have an outdated manager address due to a vulnerable manager update mechanism. 
+A manager role in ThrusterPair and ThrusterYield can claim Blast rewards generated from the contract. This manager address should be the same as `yieldTo` address in ThrusterPoolFactory.sol.
+
+For each pool/pair, the manager role can be updated in `ThrusterYield::setManager()` manually by the current manager/`yieldTo` address. Each pair contract will have its own `manager` address in storage. 
+However, this is not an efficient mechanism to sync the manager address across all deployed pools/pairs with ThrusterFactory. Here's one challenging scenario:
+
+Too many pairs to update for the manager or too costly. Due to pool deployment being permissionless, there could be too many pairs for all the manager addresses to be updated efficiently and affordably over time. When not all pair contracts are updated at the same time, some pair contracts will have an outdated manager address. 
+
+And if the outdated manager address is vulnerable/compromised, the old manager address can also potentially hijack the Blast rewards of those pair contracts. 
+
+```solidity
+//thruster-protocol/thruster-cfmm/contracts/ThrusterYield.sol
+
+    function setManager(address _manager) external onlyManager {
+        manager = _manager;
+    }
+
+```
+The protocol calling each pair contracts to update the `manager` address is not an ideal update mechanism. It opens up risk for outdated manager to persist in some pair contracts, and also compromised old manager account to hijack pair Blast rewards.
+
+Recommendations:
+In ThrusterYield.sol, instead of storing an isolated `manager` address, in `onlyManager()`, simply call ThrusterFactory for the most current `yieldTo` address.
 
