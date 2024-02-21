@@ -137,7 +137,8 @@ In addition, the storage mapping `requestedRandomNumber[sequenceNumber]` can als
 ```
 (https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L243)
 
-
+Recommendations:
+Remove `requestedRandomNumber[sequenceNumber] = msg.sender;`
 
 
 
