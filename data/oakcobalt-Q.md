@@ -52,14 +52,14 @@ Recommendations:
 Remove IThrusterERC20 inheritance.
 
 ### Low-03 ThrusterPair may have an outdated manager address due to a vulnerable manager update mechanism. 
-A manager role in ThrusterPair and ThrusterYield can claim Blast rewards generated from the contract. This manager address should be the same as `yieldTo` address in ThrusterPoolFactory.sol.
+A manager role in ThrusterPair(inheriting ThrusterYield) can claim Blast rewards generated from the contract. This manager address should be the same as `yieldTo` address in ThrusterPoolFactory.sol.
 
-For each pool/pair, the manager role can be updated in `ThrusterYield::setManager()` manually by the current manager/`yieldTo` address. Each pair contract will have its own `manager` address in storage. 
+For each pool/pair, the manager role can be updated in `ThrusterYield::setManager()` manually by the current manager/`yieldTo` address. Each pair contract will have its isolated `manager` address in storage. 
 However, this is not an efficient mechanism to sync the manager address across all deployed pools/pairs with ThrusterFactory. Here's one challenging scenario:
 
 Too many pairs to update for the manager or too costly. Due to pool deployment being permissionless, there could be too many pairs for all the manager addresses to be updated efficiently and affordably over time. When not all pair contracts are updated at the same time, some pair contracts will have an outdated manager address. 
 
-And if the outdated manager address is vulnerable/compromised, the old manager address can also potentially hijack the Blast rewards of those pair contracts. 
+In addition, if the outdated manager address is compromised, the old manager address can also potentially hijack the Blast rewards of those pair contracts. 
 
 ```solidity
 //thruster-protocol/thruster-cfmm/contracts/ThrusterYield.sol
@@ -69,8 +69,39 @@ And if the outdated manager address is vulnerable/compromised, the old manager a
     }
 
 ```
-The protocol calling each pair contracts to update the `manager` address is not an ideal update mechanism. It opens up risk for outdated manager to persist in some pair contracts, and also compromised old manager account to hijack pair Blast rewards.
+The protocol calling each pair contracts to update the `manager` address is not an ideal update mechanism. It opens up risk for outdated manager addresses to persist in some pair contracts, and also compromised old manager accounts to hijack pair Blast rewards.
 
 Recommendations:
 In ThrusterYield.sol, instead of storing an isolated `manager` address, in `onlyManager()`, simply call ThrusterFactory for the most current `yieldTo` address.
 
+### Low-04 `claimPrizesForRound()` doesn't satisfy check-effect-interaction patterns
+
+In ThrusterTreasure.sol, `claimPrizesForRound()` is a public function that allows users/winners to claim prizes. But this function doesn't satisfy the `check-effect-interaction` pattern and might become vulnerable to reentrancy if the external interactions allow callback functions.
+
+Notably, `claimPrizesForRound()` will first call external interactions `_claimPrize()` which involves external token transfers in a for-loop. And it only updates users round info `entered[msg.sender][roundToClaim]` at the end of the function call. This means, if user can re-enter `claimPrizesForRound()`, user's `entered[msg.sender][roundToClaim]` will not be cleared, potentially allowing users to `_claimPrize()` multiple times.
+
+```solidity
+//thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol
+    function claimPrizesForRound(uint256 roundToClaim) external {
+...
+        for (uint256 i = 0; i < maxPrizeCount_; i++) {
+                         //@audit interactions
+...            |>        _claimPrize(prize, msg.sender, winningTicket);
+...
+    }
+          //@audit effects
+|>        entered[msg.sender][roundToClaim] = Round(0, 0, roundToClaim); // Clear user's tickets for the round
+        emit CheckedPrizesForRound(msg.sender, roundToClaim);
+    }
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L114-L118)
+
+Recommendations:
+Update `entered[msg.sender][roundToClaim]` before calling `_claimPrize()`.
+
+
+
+
+
+
+ 
