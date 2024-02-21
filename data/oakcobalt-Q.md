@@ -173,4 +173,30 @@ constructor() {
 Recommendations:
 Remove both the ETH rewards configuration and the claiming code for ETH rewards for contracts not able to receive ETH.
 
+### Low-07 A user can withdraw prizes immediately after winning tickets drawn, bypassing the intended 'next draw period' delay stated by Doc
+
+In Thruster [Doc](https://docs.thruster.finance/docs/products/thruster-treasure/overview), there is a mention of the timing of winner claim prizes which states `then a user will be subsequently prompted to claim their prize once the next draw period starts`. 
+
+There are no on-chain mechanisms to ensure that winners only claim prizes at the start of `the next draw period`. In fact, a winner can claim their prize immediately after the owner draws winning tickets through `setWinningTickets()`. 
+
+A winner can view the winning ticket result through querying `mapping(uint256 => mapping(uint256 => uint256[])) public winningTickets;` for `currentRound` and prizeIndexes from 0 to maximum. Then a winner can directly call `claimPrizesForRound()` to claim prizes immediately. 
+
+If the intention is to unify a prize-winning window for a given round (as stated in Doc), then add a check in `claimPrizesForRound()` to ensure a minimal delay timestamp.
+
+```solidity
+//
+
+    function claimPrizesForRound(uint256 roundToClaim) external {
+        //@audit note: as long as MAX_ROUNT_TIME(30 days) hasn't passed, user can claim prizes as soon as the owner set `winningTickets` for the round. No delay in claiming is enforced.
+        require(
+            roundStart[roundToClaim] + MAX_ROUND_TIME >= block.timestamp,
+            "ICT"
+        );
+        require(winningTickets[roundToClaim][0].length > 0, "NWT");
+...
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L103-L104)
+
+Recommendations:
+If the intention is to unify a prize-winning window for a given round to 'next draw period starts'(as stated in doc), then add a check in `claimPrizesForRound()` to ensure a minimal delay timestamp.
 
