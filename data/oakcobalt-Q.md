@@ -174,6 +174,7 @@ Recommendations:
 Remove both the ETH rewards configuration and the claiming code for ETH rewards for contracts not able to receive ETH.
 
 ### Low-07 A user can withdraw prizes immediately after winning tickets drawn, bypassing the intended 'next draw period' delay stated by Doc
+**Instances(1)**
 
 In Thruster [Doc](https://docs.thruster.finance/docs/products/thruster-treasure/overview), there is a mention of the timing of winner claim prizes which states `then a user will be subsequently prompted to claim their prize once the next draw period starts`. 
 
