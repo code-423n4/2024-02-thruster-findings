@@ -140,6 +140,37 @@ In addition, the storage mapping `requestedRandomNumber[sequenceNumber]` can als
 Recommendations:
 Remove `requestedRandomNumber[sequenceNumber] = msg.sender;`
 
+### Low-06 Unnecessary implementations for ETH rewards - Pools can’t receive ETH in balance and will never be eligible for ETH rewards. 
+**Instances(2)**
+
+Three contracts have implementations for ETH Blast rewards but these contracts don't implement `receive()` or `payable` functions to ever receive eth after deployment. Contracts that do not hold ETH will not be eligible for ETH blast rewards. So no need for these ETH blast reward implementations in these contracts.
+
+```solidity
+//thruster-protocol/thruster-clmm/contracts/ThrusterPool.sol
+constructor() {
+        int24 _tickSpacing;
+        BLAST.configureClaimableGas();
+        //@audit Pool will not in normal circumstance be able to receive ETH in balance and will not be eligible for ETH rewards.
+|>      BLAST.configureClaimableYield();
+        USDB.configure(YieldMode.CLAIMABLE);
+        WETHB.configure(YieldMode.CLAIMABLE);
+...
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-clmm/contracts/ThrusterPool.sol#L130)
+```solidity
+//thruster-protocol/thruster-cfmm/contracts/ThrusterYield.sol
+    constructor(address _manager) public {
+        BLAST.configureClaimableGas();
+|>      BLAST.configureClaimableYield();
+        USDB.configure(IERC20Rebasing.YieldMode.CLAIMABLE);
+        WETHB.configure(IERC20Rebasing.YieldMode.CLAIMABLE);
+        manager = _manager;
+    }
+...
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-cfmm/contracts/ThrusterYield.sol#L26)
+
+Recommendations:
+Remove both the ETH rewards configuration and the claiming code for ETH rewards for contracts not able to receive ETH.
 
 
- 
