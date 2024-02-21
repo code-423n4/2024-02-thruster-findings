@@ -52,6 +52,8 @@ Recommendations:
 Remove IThrusterERC20 inheritance.
 
 ### Low-03 ThrusterPair may have an outdated manager address due to a vulnerable manager update mechanism. 
+**Instances(1)**
+
 A manager role in ThrusterPair(inheriting ThrusterYield) can claim Blast rewards generated from the contract. This manager address should be the same as `yieldTo` address in ThrusterPoolFactory.sol.
 
 For each pool/pair, the manager role can be updated in `ThrusterYield::setManager()` manually by the current manager/`yieldTo` address. Each pair contract will have its isolated `manager` address in storage. 
@@ -75,6 +77,7 @@ Recommendations:
 In ThrusterYield.sol, instead of storing an isolated `manager` address, in `onlyManager()`, simply call ThrusterFactory for the most current `yieldTo` address.
 
 ### Low-04 `claimPrizesForRound()` doesn't satisfy check-effect-interaction patterns
+**Instances(1)**
 
 In ThrusterTreasure.sol, `claimPrizesForRound()` is a public function that allows users/winners to claim prizes. But this function doesn't satisfy the `check-effect-interaction` pattern and might become vulnerable to reentrancy if the external interactions allow callback functions.
 
@@ -99,6 +102,40 @@ Notably, `claimPrizesForRound()` will first call external interactions `_claimPr
 Recommendations:
 Update `entered[msg.sender][roundToClaim]` before calling `_claimPrize()`.
 
+
+### Low-05 Unnecessary code in ThrusterTreasure::requestRandomNumberMany and ThrusterTreasure::requestRandomNumber
+**Instances(2)**
+
+In ThrusterTreasure.sol, both `requestRandomNumberMany()` and `requestRandomNumber()` contains a line of unnecessary code `requestedRandomNumber[sequenceNumber] = msg.sender;`.
+
+Due to `requestRandomNumberMany()` and `requestRandomNumber()` only allows owner to call and request random number from Etropy, `msg.sender` will always be owner. Also `sequenceNumber` is a return intermediate value from Etropy, and will only be meaningful when paired with the corresponding random numbers and commitment values that are generated off-chain. So storing a single `sequenceNumber` with always the same owner address only costs more gas with no meaningful impact.
+
+In addition, the storage mapping `requestedRandomNumber[sequenceNumber]` can also be removed since it is never read on-chain and will not be helpful for the off-chain process either because it doesn't show the pairing of `userCommitment` and `sequenceNumber`. Simply `emit RandomNumberRequest` will be sufficient for the off-chain process. 
+
+```solidity
+//thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol
+
+    function requestRandomNumber(
+        bytes32 userCommitment
+    ) external payable onlyOwner returns (uint64) {
+...
+        //@audit unnecessary, can remove. 
+|>      requestedRandomNumber[sequenceNumber] = msg.sender;
+        emit RandomNumberRequest(sequenceNumber, userCommitment);
+       
+...
+  }
+
+    function requestRandomNumberMany(
+        bytes32[] calldata userCommitments
+    ) external payable onlyOwner returns (uint64[] memory seqNums) {
+...
+            //@audit unnecessary, can remove. 
+|>          requestedRandomNumber[sequenceNumber] = msg.sender;
+            emit RandomNumberRequest(sequenceNumber, userCommitments[i]);
+...
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L243)
 
 
 
