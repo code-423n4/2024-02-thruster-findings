@@ -376,5 +376,24 @@ According to UniswapV3 [doc](https://docs.uniswap.org/concepts/protocol/integrat
 Recommendations:
 Consider disallowing pools with negative rebasing tokens. 
 
+### Low-14 Use `_safeMint` instead of `_mint` in NonfungiblePositionManager.sol
+In NonfungiblePositionManager::mint(), `_mint()` is used instead of `_safeMint()`. 
 
+NonfungiblePositionManager inherits openzeppelin's ERC721.sol which provides both `_mint()` and `_safeMint()`. _mint() is [discouraged](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d4d8d2ed9798cc3383912a23b5e8d5cb602f7d4b/contracts/token/ERC721/ERC721.sol#L271) in favor of _safeMint() which ensures that the recipient is either an EOA or implements IERC721Receiver. 
+
+Current `_mint()` might cause user to lose their NFT position if the caller is a contract but has no means to manage ERC721 tokens.
+
+```solidity
+//thruster-protocol/thruster-clmm/contracts/NonfungiblePositionManager.sol
+    function mint(
+        MintParams calldata params
+    )
+...
+        _mint(params.recipient, (tokenId = _nextId++));
+
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-clmm/contracts/NonfungiblePositionManager.sol#L153)
+
+Recommendation: 
+Use `_safeMint()` instead.
 
