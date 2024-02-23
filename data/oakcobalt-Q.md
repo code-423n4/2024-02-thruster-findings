@@ -201,3 +201,7 @@ If the intention is to unify a prize-winning window for a given round (as stated
 Recommendations:
 If the intention is to unify a prize-winning window for a given round to 'next draw period starts'(as stated in doc), then add a check in `claimPrizesForRound()` to ensure a minimal delay timestamp.
 
+### Low-08 `reqeustRandomNumberMany()` has incorrect array initialization
+**Instances(1)**
+
+
