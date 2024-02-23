@@ -1,0 +1,8 @@
+{
+  "contest": 334,
+  "handle": "EV_om",
+  "risk": "3",
+  "title": "Dynamic modification of `maxPrizeCount` affects prize claims",
+  "issueId": 25,
+  "issueUrl": "https://github.com/code-423n4/2024-02-thruster-findings/issues/25"
+}
