@@ -204,4 +204,106 @@ If the intention is to unify a prize-winning window for a given round to 'next d
 ### Low-08 `reqeustRandomNumberMany()` has incorrect array initialization
 **Instances(1)**
 
+In ThrusterTreasure.sol, `requestRandomNumberMany()` has incorrect array initialization, which causes the tx to revert. Specifically, a dynamic array `uint64[] memory seqNums` is declared as a return variable, but this variable is never initialized before writing to it through `seqNums[i]`.
+
+A dynamic array declared in memory needs to be initialized with length info first like this  `seqNums = new uint64[](userCommitments.length)`.
+```solidity
+//thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol
+    function requestRandomNumberMany(
+        bytes32[] calldata userCommitments
+    ) external payable onlyOwner returns (uint64[] memory seqNums) {
+        uint256 fee = entropy.getFee(entropyProvider);
+        require(address(this).balance >= fee * userCommitments.length, "IF");
+        for (uint256 i = 0; i < userCommitments.length; i++) {
+            uint64 sequenceNumber = entropy.request{value: fee}(
+                entropyProvider,
+                userCommitments[i],
+                true
+            );
+            //@audit this will cause tx revert due to seqNums haven't been initialized with userCommitments.length. 
+|>          seqNums[i] = sequenceNumber;
+            requestedRandomNumber[sequenceNumber] = msg.sender;
+            emit RandomNumberRequest(sequenceNumber, userCommitments[i]);
+        }
+    }
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L228)
+
+For reference, run the below test contract in remix, method1 will revert but method2 will succeed.
+```solidity
+pragma solidity ^0.8.23;
+
+contract DynamicArrayTest {
+
+        function updateDynamicArray1(uint[] calldata newData) external pure returns (uint[] memory arrays){
+        for (uint i = 0; i < newData.length; i++) {
+            arrays[i] = newData[i];
+        }
+    }
+
+    function updateDynamicArray2(uint[] calldata newData) external pure returns (uint[] memory arrays){
+        arrays= new uint[](newData.length);
+        for (uint i = 0; i < newData.length; i++) {
+            arrays[i] = newData[i];
+        }
+    }
+}
+```
+Recommendations:
+Initiate array `seqNums` first with length data before updating its value.
+
+
+### Low-09 User's prize might be forever locked if the setting winning tickets transaction is settled on the end timestamp of a round.
+**Instances(1)**
+
+In ThrusterTreasure.sol, there is no on-chain check to ensure owner's `setWinningTickets()` transaction will not settle on the max end timestamp of a round `roundStart[_round] + MAX_ROUND_TIME`. 
+
+If `setWinningTickets()` happens to settle on `roundStart[_round] + MAX_ROUND_TIME`, `setWinningTickets()` transaction will still succeed. But in this edge case, winners are likely not to be able to claim their prizes for the round, because `claimPrizesForRound() contains the same check for `roundStart[roundToClaim] + MAX_ROUND_TIME >= block.timestamp`. If user's claiming tx settles after `roundStart[roundToClaim] + MAX_ROUND_TIME`, claiming tx will revert, and users will not be able to claim their prizes.
+```solidity
+//thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol
+
+    function setWinningTickets(
+        uint256 _round,
+        uint256 _prizeIndex,
+        uint64[] calldata sequenceNumbers,
+        bytes32[] calldata userRandoms,
+        bytes32[] calldata providerRandoms
+    ) external onlyOwner {
+        require(roundStart[_round] + MAX_ROUND_TIME >= block.timestamp, "ICT");
+...
+}
+
+    function claimPrizesForRound(uint256 roundToClaim) external {
+        require(
+            roundStart[roundToClaim] + MAX_ROUND_TIME >= block.timestamp,
+            "ICT"
+        );
+...
+}
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L276)
+
+Recommendations:
+Although the owner can decide on the timing to set winning tickets, it will be good to ensure on-chain that there will always be a grace period between `setWinningTickets()` and `claimPrizesForRound()`. So do not use the same end timestamp check for both. 
+
+
+### Low-10  A hardcoded minimal liquidity might be insufficient for assets with higher token decimals.
+**Instances(1)**
+
+In ThrusterPair.sol, `MINIMUM_LIQUIDITY` is hardcoded as 1000. This minimum liquidity will be locked at the first deposit as a permanent supply. And also used to prevent initial dust deposit. 
+
+However, it should be noted that 1000 might not be suitable for assets with higher decimals. Given pool deployment is permissionless, it's better to allow a range of configurations of the minimum liquidity value at ThrusterPair initialization.
+
+```solidity
+//thruster-protocol/thruster-cfmm/contracts/ThrusterPair.sol
+    uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-cfmm/contracts/ThrusterPair.sol#L19)
+
+Recommendations:
+Consider allowing configuration of minimum liquidity value in `initialize()`.
+
+
+
+
 
