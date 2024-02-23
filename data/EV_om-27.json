@@ -1,0 +1,8 @@
+{
+  "contest": 334,
+  "handle": "EV_om",
+  "risk": "2",
+  "title": "`claimPrizesForRound` transfers the entire amount deposited for a prize regardless of the number of winners",
+  "issueId": 27,
+  "issueUrl": "https://github.com/code-423n4/2024-02-thruster-findings/issues/27"
+}
