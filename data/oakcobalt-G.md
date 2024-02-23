@@ -104,6 +104,26 @@ Each for-loop iteration has an overhead + any extra cost in checking the for-loo
 Recommendations:
 Consider for each round, set a round-specific max prize index to limit the for-loop iterations instead of using a global max number.
 
+### Gas-03 Events should be emitted outside of loops
+**Instances(1)**
+**Total Gas Saved(Various)**
   
+Emitting an event has an overhead of 375 gas, which will be incurred on every iteration of the loop. It is cheaper to `emit` only once after the loop has finished.
 
+In ThrusterTreasure.sol::requestRandomNumberMany(), `RandomNumberRequest` will be emitted in every iteration in the for-loop. 
 
+```solidity
+//thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol
+    function requestRandomNumberMany(
+        bytes32[] calldata userCommitments
+    ) external payable onlyOwner returns (uint64[] memory seqNums) {
+...
+        for (uint256 i = 0; i < userCommitments.length; i++) {
+...
+            emit RandomNumberRequest(sequenceNumber, userCommitments[i]);
+        }
+```
+(https://github.com/code-423n4/2024-02-thruster/blob/3896779349f90a44b46f2646094cb34fffd7f66e/thruster-protocol/thruster-treasure/contracts/ThrusterTreasure.sol#L230)
+
+Recommendations:
+Consider emit the array of seqNum and userCommitments outside of the for-loop.
