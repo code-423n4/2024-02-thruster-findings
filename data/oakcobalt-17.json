@@ -1,0 +1,8 @@
+{
+  "contest": 334,
+  "handle": "oakcobalt",
+  "risk": "2",
+  "title": "Lottery winners might lose some of their entitled prize due to vulnerable implementation in claimPrizesForRound()",
+  "issueId": 17,
+  "issueUrl": "https://github.com/code-423n4/2024-02-thruster-findings/issues/17"
+}
